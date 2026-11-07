@@ -1,4 +1,4 @@
-name: Verify YogurtCat 5.39
+name: Verify YogurtCat 5.40-preview
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: mxuana/YogurtCat
-          ref: d44b2045e833f241a5fbd7178ba677621923d775
+          ref: e7e06946f5a3dcf60a83e44ede88fa4d1cf756d9
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -37,8 +37,8 @@ jobs:
 
       - name: Build signed release
         env:
-          VERSION_CODE: '500039'
-          VERSION_NAME: '5.39'
+          VERSION_CODE: '500040'
+          VERSION_NAME: '5.40-preview'
           ANDROID_KEYSTORE_PATH: release-key.p12
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -47,7 +47,7 @@ jobs:
 
       - name: Compare signing certificates
         run: |
-          curl -fLsS --retry 3 -o old.apk https://github.com/mxuana/Android-Releases/releases/download/v5.38/YogurtCat-5.38.apk
+          curl -fLsS --retry 3 -o old.apk https://github.com/mxuana/Android-Releases/releases/download/v5.39/YogurtCat-5.39.apk
           NEW_APK=app/build/outputs/apk/release/app-release.apk
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
           test -s "$NEW_APK"
@@ -71,11 +71,13 @@ jobs:
 
           AAPT="$(dirname "$APKSIGNER")/aapt"
           "$AAPT" dump badging "$NEW_APK" > new-badging.txt
-          grep -F "package: name='com.example.change2proimage' versionCode='500039' versionName='5.39'" new-badging.txt
-          sha256sum "$NEW_APK"
+          grep -F "package: name='com.example.change2proimage' versionCode='500040' versionName='5.40-preview'" new-badging.txt
+          (cd "$(dirname "$NEW_APK")" && sha256sum app-release.apk > app-release.apk.sha256)
 
       - name: Upload verified APK
         uses: actions/upload-artifact@v4
         with:
-          name: YogurtCat-5.39-signed
-          path: app/build/outputs/apk/release/app-release.apk
+          name: YogurtCat-5.40-preview-signed
+          path: |
+            app/build/outputs/apk/release/app-release.apk
+            app/build/outputs/apk/release/app-release.apk.sha256

@@ -1,4 +1,4 @@
-name: Verify YogurtCat 5.40-preview
+name: Verify YogurtCat 5.41-preview
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: mxuana/YogurtCat
-          ref: e7e06946f5a3dcf60a83e44ede88fa4d1cf756d9
+          ref: f63a3dfaff1857a98d263862a4999ea61120eb4e
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -37,8 +37,8 @@ jobs:
 
       - name: Build signed release
         env:
-          VERSION_CODE: '500040'
-          VERSION_NAME: '5.40-preview'
+          VERSION_CODE: '500041'
+          VERSION_NAME: '5.41-preview'
           ANDROID_KEYSTORE_PATH: release-key.p12
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -71,13 +71,13 @@ jobs:
 
           AAPT="$(dirname "$APKSIGNER")/aapt"
           "$AAPT" dump badging "$NEW_APK" > new-badging.txt
-          grep -F "package: name='com.example.change2proimage' versionCode='500040' versionName='5.40-preview'" new-badging.txt
+          grep -F "package: name='com.example.change2proimage' versionCode='500041' versionName='5.41-preview'" new-badging.txt
           (cd "$(dirname "$NEW_APK")" && sha256sum app-release.apk > app-release.apk.sha256)
 
       - name: Upload verified APK
         uses: actions/upload-artifact@v4
         with:
-          name: YogurtCat-5.40-preview-signed
+          name: YogurtCat-5.41-preview-signed
           path: |
             app/build/outputs/apk/release/app-release.apk
             app/build/outputs/apk/release/app-release.apk.sha256

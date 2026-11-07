@@ -1,0 +1,83 @@
+name: Verify YogurtCat 5.38
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout YogurtCat
+        uses: actions/checkout@v4
+        with:
+          repository: mxuana/YogurtCat
+          ref: fix/image-resolution-selection
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Restore signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$KEYSTORE_BASE64"
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > release-key.p12
+
+      - name: Build signed release
+        env:
+          VERSION_CODE: '500038'
+          VERSION_NAME: '5.38'
+          ANDROID_KEYSTORE_PATH: release-key.p12
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: gradle :app:assembleRelease --no-daemon
+
+      - name: Compare signing certificates
+        run: |
+          curl -fL --retry 3 \
+            -o old.apk \
+            https://github.com/mxuana/Android-Releases/releases/download/v5.37/YogurtCat-5.37.apk
+
+          NEW_APK=app/build/outputs/apk/release/app-release.apk
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+
+          test -s "$NEW_APK"
+          test -n "$APKSIGNER"
+
+          "$APKSIGNER" verify --print-certs old.apk > old-cert.txt
+          "$APKSIGNER" verify --print-certs "$NEW_APK" > new-cert.txt
+
+          OLD_SHA=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' old-cert.txt | head -1)
+          NEW_SHA=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' new-cert.txt | head -1)
+
+          test -n "$OLD_SHA"
+          test -n "$NEW_SHA"
+
+          echo "Old certificate: $OLD_SHA"
+          echo "New certificate: $NEW_SHA"
+
+          test "$OLD_SHA" = "$NEW_SHA" || {
+            echo "Signing certificates differ"
+            exit 1
+          }
+
+          echo "Signing certificates match"
+
+      - name: Upload verified APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: YogurtCat-5.38-signed
+          path: app/build/outputs/apk/release/app-release.apk

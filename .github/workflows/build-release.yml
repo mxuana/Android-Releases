@@ -35,6 +35,13 @@ jobs:
           test -n "$KEYSTORE_BASE64"
           printf '%s' "$KEYSTORE_BASE64" | base64 -d > app/release-key.p12
 
+      - name: Diagnose keystore
+        env:
+          STORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          file app/release-key.p12
+          keytool -list -keystore app/release-key.p12 -storepass:env STORE_PASS 2>&1 | grep -E 'Keystore type:|Your keystore contains|Exception|error|password|tampered|Invalid' || true
+
       - name: Build signed release
         env:
           VERSION_CODE: '500038'

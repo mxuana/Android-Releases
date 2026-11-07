@@ -33,7 +33,7 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           test -n "$KEYSTORE_BASE64"
-          printf '%s' "$KEYSTORE_BASE64" | base64 -d > release-key.p12
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > app/release-key.p12
 
       - name: Build signed release
         env:

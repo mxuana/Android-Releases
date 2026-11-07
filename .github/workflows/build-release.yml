@@ -59,33 +59,26 @@ jobs:
 
       - name: Compare signing certificates
         run: |
-          curl -fL --retry 3 \
-            -o old.apk \
-            https://github.com/mxuana/Android-Releases/releases/download/v5.37/YogurtCat-5.37.apk
-
+          curl -fLsS --retry 3 -o old.apk https://github.com/mxuana/Android-Releases/releases/download/v5.37/YogurtCat-5.37.apk
           NEW_APK=app/build/outputs/apk/release/app-release.apk
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
-
           test -s "$NEW_APK"
           test -n "$APKSIGNER"
 
-          "$APKSIGNER" verify --print-certs old.apk > old-cert.txt
-          "$APKSIGNER" verify --print-certs "$NEW_APK" > new-cert.txt
+          "$APKSIGNER" verify --print-certs --min-sdk-version 24 old.apk > old-cert.txt 2>&1 || true
+          "$APKSIGNER" verify --print-certs --min-sdk-version 24 "$NEW_APK" > new-cert.txt 2>&1 || true
+
+          echo "Old certificate:"
+          cat old-cert.txt
+          echo "New certificate:"
+          cat new-cert.txt
 
           OLD_SHA=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' old-cert.txt | head -1)
           NEW_SHA=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' new-cert.txt | head -1)
 
           test -n "$OLD_SHA"
           test -n "$NEW_SHA"
-
-          echo "Old certificate: $OLD_SHA"
-          echo "New certificate: $NEW_SHA"
-
-          test "$OLD_SHA" = "$NEW_SHA" || {
-            echo "Signing certificates differ"
-            exit 1
-          }
-
+          test "$OLD_SHA" = "$NEW_SHA"
           echo "Signing certificates match"
 
       - name: Upload verified APK

@@ -39,7 +39,12 @@ jobs:
         env:
           STORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
+          echo "Keystore size:"
+          wc -c < app/release-key.p12
+          echo "Keystore format:"
           file app/release-key.p12
+          echo "First 8 bytes:"
+          od -An -tx1 -N8 app/release-key.p12
           keytool -list -keystore app/release-key.p12 -storepass:env STORE_PASS 2>&1 | grep -E 'Keystore type:|Your keystore contains|Exception|error|password|tampered|Invalid' || true
 
       - name: Build signed release
@@ -50,6 +55,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        if: false
         run: gradle :app:assembleRelease --no-daemon
 
       - name: Compare signing certificates
